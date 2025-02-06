@@ -26,7 +26,7 @@ fn C.zmq_recv(voidptr, voidptr, usize, int) int
 fn C.zmq_msg_init(voidptr) int
 fn C.zmq_msg_recv(voidptr, voidptr, int) int
 fn C.zmq_msg_size(voidptr) usize
-fn C.zmq_msg_data(voidptr) &byte
+fn C.zmq_msg_data(voidptr) &u8
 fn C.zmq_bind(voidptr, &char) int
 fn C.zmq_connect(voidptr, &char) int
 fn C.zmq_setsockopt(voidptr, int, voidptr, usize) int
@@ -93,7 +93,7 @@ pub struct Socket {
 }
 
 // Create a new typed socket
-pub fn new_socket(ctx &Context, t SocketType) ?&Socket {
+pub fn new_socket(ctx &Context, t SocketType) !&Socket {
 	mut z_sock_type := int(0)
 
 	match t {
@@ -126,7 +126,7 @@ fn (s &Socket) free() {
 }
 
 // Bind to an address
-pub fn (s Socket) bind(addr string) ? {
+pub fn (s Socket) bind(addr string) ! {
 	rc := C.zmq_bind(s.sock, &char(addr.str))
 	if rc != 0 {
 		err_str := C.strerror(C.errno)
@@ -135,7 +135,7 @@ pub fn (s Socket) bind(addr string) ? {
 }
 
 // Connect to an address
-pub fn (s Socket) connect(addr string) ? {
+pub fn (s Socket) connect(addr string) ! {
 	rc := C.zmq_connect(s.sock, &char(addr.str))
 	if rc != 0 {
 		err_str := C.strerror(C.errno)
@@ -144,7 +144,7 @@ pub fn (s Socket) connect(addr string) ? {
 }
 
 // Send the payload on a socket
-pub fn (s Socket) send(payload []byte) ? {
+pub fn (s Socket) send(payload []byte) ! {
 	c_payload := payload.data
 	rc := C.zmq_send(s.sock, c_payload, u64(payload.len), 0)
 	if rc == -1 {
@@ -153,7 +153,7 @@ pub fn (s Socket) send(payload []byte) ? {
 }
 
 // Receive up to buf.len bytes from a socket
-pub fn (s Socket) recv_buf(buf []byte) ?int {
+pub fn (s Socket) recv_buf(buf []byte) !int {
 	rc := C.zmq_recv(s.sock, buf.data, buf.len, 0)
 	if rc == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
@@ -163,7 +163,7 @@ pub fn (s Socket) recv_buf(buf []byte) ?int {
 
 // Receive an entire message from a socket
 // The returned array contains the message
-pub fn (s Socket) recv() ?[]byte {
+pub fn (s Socket) recv() ![]u8 {
 	msg := new_message()
 	C.zmq_msg_init(msg.msg)
 	rc := C.zmq_msg_recv(msg.msg, s.sock, 0)
@@ -172,7 +172,7 @@ pub fn (s Socket) recv() ?[]byte {
 	}
 	size := C.zmq_msg_size(msg.msg)
 	data := C.zmq_msg_data(msg.msg)
-	buf := []byte{len: int(size)}
+	buf := []u8{len: int(size)}
 	for i, _ in buf {
 		unsafe {
 			buf[i] = data[i]
@@ -182,41 +182,41 @@ pub fn (s Socket) recv() ?[]byte {
 	return buf
 }
 
-pub fn (s Socket) set_connect_timeout(dur time.Duration) ? {
+pub fn (s Socket) set_connect_timeout(dur time.Duration) ! {
 	millis := int(dur.milliseconds())
 	if C.zmq_setsockopt(s.sock, C.vmq_sockopt(c'CONNECT_TIMEOUT'), &millis, sizeof(int)) == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
 	}
 }
 
-pub fn (s Socket) set_recv_timeout(dur time.Duration) ? {
+pub fn (s Socket) set_recv_timeout(dur time.Duration) ! {
 	millis := int(dur.milliseconds())
 	if C.zmq_setsockopt(s.sock, C.vmq_sockopt(c'RCVTIMEO'), &millis, sizeof(int)) == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
 	}
 }
 
-pub fn (s Socket) set_send_timeout(dur time.Duration) ? {
+pub fn (s Socket) set_send_timeout(dur time.Duration) ! {
 	millis := int(dur.milliseconds())
 	if C.zmq_setsockopt(s.sock, C.vmq_sockopt(c'SNDTIMEO'), &millis, sizeof(int)) == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
 	}
 }
 
-pub fn (s Socket) subscribe(topic []byte) ? {
+pub fn (s Socket) subscribe(topic []byte) ! {
 	if C.zmq_setsockopt(s.sock, C.vmq_sockopt(c'SUBSCRIBE'), topic.data, topic.len) == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
 	}
 }
 
-pub fn (s Socket) unsubscribe(topic []byte) ? {
+pub fn (s Socket) unsubscribe(topic []byte) ! {
 	if C.zmq_setsockopt(s.sock, C.vmq_sockopt(c'UNSUBSCRIBE'), topic.data, topic.len) == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
 	}
 }
 
 // Setup the socket for curve encryted communication
-pub fn (s Socket) setup_curve(publickey string, secretkey string) ? {
+pub fn (s Socket) setup_curve(publickey string, secretkey string) ! {
 	if publickey.len != 41 || secretkey.len != 41 {
 		return error('Key length must be 41!')
 	}
@@ -233,14 +233,14 @@ pub fn (s Socket) setup_curve(publickey string, secretkey string) ? {
 }
 
 // Set the socket to act as a curve server
-pub fn (s Socket) set_curve_server() ? {
+pub fn (s Socket) set_curve_server() ! {
 	option := int(1)
 	if C.zmq_setsockopt(s.sock, C.vmq_sockopt(c'CURVE_SERVER'), &option, sizeof(option)) == -1 {
 		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
 	}
 }
 
-pub fn (s Socket) set_curve_serverkey(serverkey string) ? {
+pub fn (s Socket) set_curve_serverkey(serverkey string) ! {
 	if serverkey.len != 41 {
 		return error('Key length must be 41!')
 	}
@@ -252,9 +252,9 @@ pub fn (s Socket) set_curve_serverkey(serverkey string) ? {
 }
 
 // Generate a z85 encoded curve keypair
-pub fn curve_keypair() ?(string, string) {
-	pub_buf := []byte{len: 41}
-	sec_buf := []byte{len: 41}
+pub fn curve_keypair() !(string, string) {
+	pub_buf := []u8{len: 41}
+	sec_buf := []u8{len: 41}
 
 	if C.zmq_curve_keypair(&char(pub_buf.data), &char(sec_buf.data)) == -1 {
 		return error('ZMQ was not built with cryptographic support!')
