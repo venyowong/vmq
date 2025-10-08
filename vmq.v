@@ -50,7 +50,7 @@ pub fn new_context() &Context {
 }
 
 // Free data associated with a context
-fn (ctx &Context) free() {
+pub fn (ctx &Context) free() {
 	C.zmq_ctx_destroy(ctx.ctx)
 }
 
@@ -67,7 +67,7 @@ fn new_message() &Message {
 }
 
 // Free data associated with a message
-fn (m &Message) free() {
+pub fn (m &Message) free() {
 	C.zmq_msg_close(m.msg)
 	unsafe { free(m.msg) }
 }
@@ -122,7 +122,7 @@ pub fn new_socket(ctx &Context, t SocketType) !&Socket {
 }
 
 // Free data associated with a socket
-fn (s &Socket) free() {
+pub fn (s &Socket) free() {
 	C.zmq_close(s.sock)
 }
 
