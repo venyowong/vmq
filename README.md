@@ -1,6 +1,8 @@
 # vmq
-![Run Main](https://github.com/jordan-bonecutter/vmq/workflows/Run%20Main/badge.svg)
 
+This fork support `zmq_proxy`, adjusts the directory structure, and submit it to [vpm](https://vpm.vlang.io/)
+
+If this is not allowed, please contact me to delete this fork and [package](https://vpm.vlang.io/packages/venyowong.vpm)
 
 V Wrapper For ZMQ
 
