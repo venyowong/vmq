@@ -2,7 +2,7 @@
 
 This fork support `zmq_proxy`, adjusts the directory structure, and submit it to [vpm](https://vpm.vlang.io/)
 
-If this is not allowed, please contact me to delete this fork and [package](https://vpm.vlang.io/packages/venyowong.vpm)
+If this is not allowed, please contact me to delete this fork and [package](https://vpm.vlang.io/packages/venyowong.vmq)
 
 V Wrapper For ZMQ
 
