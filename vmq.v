@@ -32,6 +32,7 @@ fn C.zmq_connect(voidptr, &char) int
 fn C.zmq_setsockopt(voidptr, int, voidptr, usize) int
 fn C.zmq_msg_close(voidptr)
 fn C.zmq_curve_keypair(&char, &char) int
+fn C.zmq_proxy(voidptr, voidptr, voidptr) int
 
 // Error handling
 fn C.strerror(int) &char
@@ -105,10 +106,10 @@ pub fn new_socket(ctx &Context, t SocketType) !&Socket {
 		.pull { z_sock_type = C.vmq_socktype(c'PULL') }
 		.pair { z_sock_type = C.vmq_socktype(c'PAIR') }
 		.stream { z_sock_type = C.vmq_socktype(c'STREAM') }
-		.req { z_sock_type = C.vmq_socktype(c'req') }
-		.rep { z_sock_type = C.vmq_socktype(c'rep') }
-		.dealer { z_sock_type = C.vmq_socktype(c'dealer') }
-		.router { z_sock_type = C.vmq_socktype(c'router') }
+		.req { z_sock_type = C.vmq_socktype(c'REQ') }
+		.rep { z_sock_type = C.vmq_socktype(c'REP') }
+		.dealer { z_sock_type = C.vmq_socktype(c'DEALER') }
+		.router { z_sock_type = C.vmq_socktype(c'ROUTER') }
 	}
 
 	if z_sock_type == -1 {
@@ -261,4 +262,10 @@ pub fn curve_keypair() !(string, string) {
 	}
 
 	return pub_buf.bytestr(), sec_buf.bytestr()
+}
+
+pub fn proxy(frontend &Socket, backend &Socket) ! {
+	if C.zmq_proxy(frontend.sock, backend.sock, unsafe{nil}) == -1 {
+		return error(unsafe { cstring_to_vstring(C.strerror(C.errno)) })
+	}
 }
